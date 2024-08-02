@@ -1372,7 +1372,6 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
     MSx_P1 = 128 * outdivider - 512;
 
     // calc the a/b/c for the PLL Msynth
-
     // We will use integer only on the b/c relation, and will >> 5 (/32) both to fit it on the 1048 k limit of C and keep the relation the most accurate
     //   possible, this works fine with xtals from 24 to 28 Mhz.
     // This will give errors of about +/- 2 Hz maximum as per my test and simulations in the worst case, well below the XTAl ppm error...
@@ -1426,16 +1425,15 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
             R |= 0x0C;    // bit set OR mask for MSYNTH divide by 4, for reg 44 {3:2]
         }
 
-        // HEX makes it easier to human read on bit shifts
         uint8_t reg_bank_42[] = {
-                0,                         // Bits [15:8] of MS0_P3 (always 0) in register 42
-                1,                         // Bits [7:0]  of MS0_P3 (always 1) in register 43
-                ((MSx_P1 & 0x030000L) >> 16) | R,  // Bits [17:16] of MSx_P1 in bits [1:0] and R in [7:4] | [3:2]
-                (MSx_P1 & 0xFF00) >> 8,    // Bits [15:8]  of MSx_P1 in register 45
-                MSx_P1 & 0xFF,             // Bits [7:0]  of MSx_P1 in register 46
-                0,                         // Bits [19:16] of MS0_P2 and MS0_P3 are always 0
-                0,                         // Bits [15:8]  of MS0_P2 are always 0
-                0                          // Bits [7:0]   of MS0_P2 are always 0
+                0,                                // bits [15:8] of MS0_P3 (always 0) in register 42
+                1,                                // bits [7:0]  of MS0_P3 (always 1) in register 43
+                ((MSx_P1 & 0x030000L) >> 16) | R, // bits [17:16] of MSx_P1 in bits [1:0] and R in [7:4] | [3:2]
+                (MSx_P1 & 0xFF00) >> 8,           // bits [15:8]  of MSx_P1 in register 45
+                MSx_P1 & 0xFF,                    // bits [7:0]  of MSx_P1 in register 46
+                0,                                // bits [19:16] of MS0_P2 and MS0_P3 are always 0
+                0,                                // bits [15:8]  of MS0_P2 are always 0
+                0                                 // bits [7:0]   of MS0_P2 are always 0
                 };
 
         // Get the two write bursts as close together as possible, to attempt to reduce any more click glitches. This is at the expense of only 24 increased
@@ -1464,6 +1462,117 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
     } else {
         si5351_write_bulk(26 + pll_stride, sizeof(reg_bank_26), reg_bank_26);
     }
+}
+
+void si5351_calc(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num, int32_t *pll_denom, int32_t *out_div, int32_t *out_num, int32_t *out_denom,
+        uint8_t *out_rdiv, uint8_t *out_allow_integer_mode) {
+    if (fclk < 8000)
+        fclk = 8000;
+    else if (fclk > 160000000)
+        fclk = 160000000;
+
+    *out_allow_integer_mode = 1;
+
+    if (fclk < 1000000) {
+        // For frequencies in [8_000, 500_000] range we can use si5351_Calc(Fclk*64, ...) and SI5351_R_DIV_64.
+        // In practice it's worth doing for any frequency below 1 MHz, since it reduces the error.
+        fclk *= 64;
+        *out_rdiv = SI5351_R_DIV_64;
+    } else {
+        *out_rdiv = SI5351_R_DIV_1;
+    }
+
+    // Apply correction, _after_ determining rdiv.
+    fclk = fclk - (int32_t) ((((double) fclk) / 100000000.0) * ((double) corr));
+
+    // Here we are looking for integer values of a,b,c,x,y,z such as:
+    // N = a + b / c    # pll settings
+    // M = x + y / z    # ms  settings
+    // Fclk = Fxtal * N / M
+    // N in [24, 36]
+    // M in [8, 1800] or M in {4,6}
+    // b < c, y < z
+    // b,c,y,z <= 2**20
+    // c, z != 0
+    // For any Fclk in [500K, 160MHz] this algorithm finds a solution
+    // such as abs(Ffound - Fclk) <= 6 Hz
+
+    const int32_t Fxtal = 25000000;
+    int32_t a, b, c, x, y, z, t;
+
+    if (fclk < 81000000) {
+        // Valid for Fclk in 0.5..112.5 MHz range. However an error is > 6 Hz above 81 MHz
+        a = 36; // PLL runs @ 900 MHz
+        b = 0;
+        c = 1;
+        int32_t Fpll = 900000000;
+        x = Fpll / fclk;
+        t = (fclk >> 20) + 1;
+        y = (Fpll % fclk) / t;
+        z = fclk / t;
+    } else {
+        // Valid for fclk in 75..160 MHz range
+        if (fclk >= 150000000) {
+            x = 4;
+        } else if (fclk >= 100000000) {
+            x = 6;
+        } else {
+            x = 8;
+        }
+        y = 0;
+        z = 1;
+
+        int32_t numerator = x * fclk;
+        a = numerator / Fxtal;
+        t = (Fxtal >> 20) + 1;
+        b = (numerator % Fxtal) / t;
+        c = Fxtal / t;
+    }
+
+    *pll_mult = a;
+    *pll_num = b;
+    *pll_denom = c;
+    *out_div = x;
+    *out_num = y;
+    *out_denom = z;
+}
+
+void si5351_calc_iq(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num, int32_t *pll_denom, int32_t *out_div, int32_t *out_num, int32_t *out_denom,
+        uint8_t *out_rdiv, uint8_t *out_allow_integer_mode) {
+    const int32_t Fxtal = 25000000;
+    int32_t Fpll;
+
+    if (fclk < 1400000)
+        fclk = 1400000;
+    else if (fclk > 100000000)
+        fclk = 100000000;
+
+    // apply correction
+    fclk = fclk - ((fclk / 1000000) * corr) / 100;
+
+    // disable integer mode
+    *out_allow_integer_mode = 0;
+
+    // Using RDivider's changes the phase shift and AN619 doesn't give any guarantees regarding this change.
+    *out_rdiv = 0;
+
+    if (fclk < 4900000) {
+        // Little hack, run PLL below 600 MHz to cover 1.4 MHz .. 4.725 MHz range.
+        // AN619 doesn't literally say that PLL can't run below 600 MHz.
+        // Experiments showed that PLL gets unstable when you run it below 177 MHz, which limits Fclk to 177 / 127 = 1.4 MHz.
+        *out_div = 127;
+    } else if (fclk < 8000000) {
+        *out_div = 625000000 / fclk;
+    } else {
+        *out_div = 900000000 / fclk;
+    }
+    *out_num = 0;
+    *out_denom = 1;
+
+    Fpll = fclk * (*out_div);
+    *pll_mult = Fpll / Fxtal;
+    *pll_num = (Fpll % Fxtal) / 24;
+    *pll_denom = Fxtal / 24; // denom can't exceed 0xFFFFF
 }
 
 //////////////////////////////////////////////////////////////////////

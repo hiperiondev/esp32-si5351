@@ -221,6 +221,22 @@
  */
 
 /**
+ * @enum si5351RDiv
+ * @brief
+ *
+ */
+enum si5351RDiv{
+    SI5351_R_DIV_1   = 0, /**< SI5351_R_DIV_1 */
+    SI5351_R_DIV_2   = 1, /**< SI5351_R_DIV_2 */
+    SI5351_R_DIV_4   = 2, /**< SI5351_R_DIV_4 */
+    SI5351_R_DIV_8   = 3, /**< SI5351_R_DIV_8 */
+    SI5351_R_DIV_16  = 4, /**< SI5351_R_DIV_16 */
+    SI5351_R_DIV_32  = 5, /**< SI5351_R_DIV_32 */
+    SI5351_R_DIV_64  = 6, /**< SI5351_R_DIV_64 */
+    SI5351_R_DIV_128 = 7, /**< SI5351_R_DIV_128 */
+};
+
+/**
  * @enum si5351_clock
  * @brief
  *
@@ -623,6 +639,47 @@ uint8_t si5351_read(uint8_t addr);
  * @param enabled Whether spread spectrum output is enabled
  */
 void si5351_spread_spectrum(bool enabled);
+
+/**
+ * @fn void si5351_calc(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num, int32_t *pll_denom, int32_t *out_div, int32_t *out_num, int32_t *out_denom,
+ *         uint8_t *out_rdiv, uint8_t *out_allow_integer_mode);
+ * @brief Calculates PLL, MS and RDiv settings for given fclk in [8_000, 160_000_000] range.
+ * The actual frequency will differ less than 6 Hz from given fclk, assuming `correction` is right.
+ *
+ * @param fclk
+ * @param corr
+ * @param pll_mult
+ * @param pll_num
+ * @param pll_denom
+ * @param out_div
+ * @param out_num
+ * @param out_denom
+ * @param out_rdiv
+ * @param out_allow_integer_mode
+ */
+void si5351_calc(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num, int32_t *pll_denom, int32_t *out_div, int32_t *out_num, int32_t *out_denom,
+        uint8_t *out_rdiv, uint8_t *out_allowIntegerMode);
+
+/**
+ * @fn void si5351_calc_iq(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num, int32_t *pll_denom, int32_t *out_div, int32_t *out_num, int32_t *out_denom,
+ *         uint8_t *out_rdiv, uint8_t *out_allow_integer_mode);
+ * @brief  finds PLL and MS parameters that give phase shift 90° between two channels.
+ * If 0 and (uint8_t)out_div are passed as phaseOffset for these channels. Channels should use the same PLL to make it work.
+ * fclk can be from 1.4 MHz to 100 MHz. The actual frequency will differ less than 4 Hz from given fclk, assuming `correction` is right
+ *
+ * @param fclk
+ * @param corr
+ * @param pll_mult
+ * @param pll_num
+ * @param pll_denom
+ * @param out_div
+ * @param out_num
+ * @param out_denom
+ * @param out_rdiv
+ * @param out_allow_integer_mode
+ */
+void si5351_calc_iq(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num, int32_t *pll_denom, int32_t *out_div, int32_t *out_num, int32_t *out_denom,
+        uint8_t *out_rdiv, uint8_t *out_allow_integer_mode);
 
 //////////// I2C interface ////////////
 
