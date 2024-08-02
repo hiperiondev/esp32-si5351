@@ -1099,7 +1099,8 @@ void si5351_set_clock_disable(enum si5351_clock clk, enum si5351_clock_disable d
         reg = SI5351_CLK3_0_DISABLE_STATE;
     } else if (clk >= SI5351_CLK4 && clk <= SI5351_CLK7) {
         reg = SI5351_CLK7_4_DISABLE_STATE;
-    }
+    } else
+        return;
 
     reg_val = si5351_read(reg);
 
