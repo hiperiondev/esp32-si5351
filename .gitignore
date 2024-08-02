@@ -50,3 +50,14 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+build/
+.cproject
+.project
+sdkconfig
+sdkconfig.old
+.settings
+temp/
+dependencies.lock
+.cache/
+.clangd
