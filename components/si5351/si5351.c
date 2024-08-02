@@ -530,6 +530,11 @@ void si5351_reset(void) {
     }
 }
 
+void si5351_fast_reset(void) {
+    // This soft-resets PLL A & B (32 + 128) in just one step
+    si5351_write(SI5351_PLL_RESET, 0xA0);
+}
+
 bool si5351_set_freq(uint64_t freq, enum si5351_clock clk) {
     struct si5351_reg_set ms_reg;
     uint64_t pll_freq;
@@ -1293,6 +1298,172 @@ void si5351_spread_spectrum(bool enabled) {
     regval &= ~0x80;
   }
   si5351_write(SI5351_SSC_PARAM0, regval);
+}
+
+void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
+    // this is the work value, with the correction applied via the correction() procedure
+    uint32_t int_xtal = BASE_XTAL;
+
+    // BAD CONCEPT on the datasheet and AN:
+    // The chip has a soft-reset for PLL A & B but in practice the PLL does not need to be reseted.
+    // Test shows that if you fix the Msynth output dividers and move any of the VCO from bottom to top the frequency moves smooth and clean, no reset needed
+    // The reset is needed when you changes the value of the Msynth output divider, even so it's not always needed so we use this var to keep track of all three
+    //   and only reset the "PLL" when this value changes to be sure
+    // It's a word (16 bit) because the final max value is 900
+    uint16_t omsynth[3] = { 0 };
+    uint8_t o_Rdiv[3] = { 0 };
+
+    uint8_t a, R = 1, pll_stride = 0, msyn_stride = 0;
+    uint32_t b, c, f, fvco, outdivider;
+    uint32_t MSx_P1, MSNx_P1, MSNx_P2, MSNx_P3;
+
+    // Overclock option
+#ifdef SI_OVERCLOCK
+        // user a overclock setting for the VCO, max value in my hardware was 1.05 to 1.1 GHz, as usual YMMV
+        outdivider = SI_OVERCLOCK / freq;
+    #else
+    // normal VCO from the datasheet and AN
+    // With 900 MHz being the maximum internal PLL-Frequency
+    outdivider = 900000000 / freq;
+#endif
+
+    // use additional Output divider ("R")
+    while (outdivider > 900) {
+        R = R * 2;
+        outdivider = outdivider / 2;
+    }
+
+    // finds the even divider which delivers the intended Frequency
+    if (outdivider % 2)
+        outdivider--;
+
+    // Calculate the PLL-Frequency (given the even divider)
+    fvco = outdivider * R * freq;
+
+    // Convert the Output Divider to the bit-setting required in register 44
+    switch (R) {
+        case 1:
+            R = 0;
+            break;
+        case 2:
+            R = 16;
+            break;
+        case 4:
+            R = 32;
+            break;
+        case 8:
+            R = 48;
+            break;
+        case 16:
+            R = 64;
+            break;
+        case 32:
+            R = 80;
+            break;
+        case 64:
+            R = 96;
+            break;
+        case 128:
+            R = 112;
+            break;
+    }
+
+    // we have now the integer part of the output msynth the b & c is fixed below
+    MSx_P1 = 128 * outdivider - 512;
+
+    // calc the a/b/c for the PLL Msynth
+
+    // We will use integer only on the b/c relation, and will >> 5 (/32) both to fit it on the 1048 k limit of C and keep the relation the most accurate
+    //   possible, this works fine with xtals from 24 to 28 Mhz.
+    // This will give errors of about +/- 2 Hz maximum as per my test and simulations in the worst case, well below the XTAl ppm error...
+    // This will free more than 1K of the final eeprom
+    a = fvco / int_xtal;
+    b = (fvco % int_xtal) >> 5; // Integer part of the fraction scaled to match "c" limits
+    c = int_xtal >> 5;          // "c" scaled to match it's limits in the register
+
+    // f is (128*b)/c to mimic the Floor(128*(b/c)) from the datasheet
+    f = (128 * b) / c;
+
+    // build the registers to write
+    MSNx_P1 = 128 * a + f - 512;
+    MSNx_P2 = 128 * b - f * c;
+    MSNx_P3 = c;
+
+    // PLLs and CLK# registers are allocated with a stride, we handle that with
+    // the stride var to make code smaller
+    if (clk > 0)
+        pll_stride = 8;
+
+    // HEX makes it easier to human read on bit shifts
+    uint8_t reg_bank_26[] = {
+            (MSNx_P3 & 0xFF00) >> 8,                                      // Bits [15:8] of MSNx_P3 in register 26
+            MSNx_P3 & 0xFF, (MSNx_P1 & 0x030000L) >> 16,
+            (MSNx_P1 & 0xFF00) >> 8,                                      // Bits [15:8]  of MSNx_P1 in register 29
+            MSNx_P1 & 0xFF,                                               // Bits [7:0]  of MSNx_P1 in register 30
+            ((MSNx_P3 & 0x0F0000L) >> 12) | ((MSNx_P2 & 0x0F0000) >> 16), // Parts of MSNx_P3 and MSNx_P1
+            (MSNx_P2 & 0xFF00) >> 8,                                      // Bits [15:8]  of MSNx_P2 in register 32
+            MSNx_P2 & 0xFF                                                // Bits [7:0]  of MSNx_P2 in register 33
+    };
+
+    // We could do this here - but move it next to the reg_bank_42
+    // Write the output divider msynth only if we need to, in this way we can speed up the frequency changes almost by half the time most of the time
+    //   and the main goal is to avoid the nasty click noise on freq change
+    if (omsynth[clk] != outdivider || o_Rdiv[clk] != R) {
+
+        // CLK# registers are exactly 8 * clk# bytes stride from a base register.
+        msyn_stride = clk * 8;
+
+        // keep track of the change
+        omsynth[clk] = (uint16_t) outdivider;
+        o_Rdiv[clk] = R; // cache it now, before we OR mask up R for special divide by 4
+
+        // See datasheet, special trick when MSx == 4
+        //    MSx_P1 is always 0 if outdivider == 4, from the above equations, so there is
+        //    no need to set it to 0. ... MSx_P1 = 128 * outdivider - 512;
+        //      See para 4.1.3 on the datasheet.
+
+        if (outdivider == 4) {
+            R |= 0x0C;    // bit set OR mask for MSYNTH divide by 4, for reg 44 {3:2]
+        }
+
+        // HEX makes it easier to human read on bit shifts
+        uint8_t reg_bank_42[] = {
+                0,                         // Bits [15:8] of MS0_P3 (always 0) in register 42
+                1,                         // Bits [7:0]  of MS0_P3 (always 1) in register 43
+                ((MSx_P1 & 0x030000L) >> 16) | R,  // Bits [17:16] of MSx_P1 in bits [1:0] and R in [7:4] | [3:2]
+                (MSx_P1 & 0xFF00) >> 8,    // Bits [15:8]  of MSx_P1 in register 45
+                MSx_P1 & 0xFF,             // Bits [7:0]  of MSx_P1 in register 46
+                0,                         // Bits [19:16] of MS0_P2 and MS0_P3 are always 0
+                0,                         // Bits [15:8]  of MS0_P2 are always 0
+                0                          // Bits [7:0]   of MS0_P2 are always 0
+                };
+
+        // Get the two write bursts as close together as possible, to attempt to reduce any more click glitches. This is at the expense of only 24 increased
+        //   bytes compilation size in AVR 328.
+        // Everything is already precalculated above, reducing any delay, by not doing calculations between the burst writes.
+
+        si5351_write_bulk(26 + pll_stride, sizeof(reg_bank_26), reg_bank_26);
+        si5351_write_bulk(42 + msyn_stride, sizeof(reg_bank_42), reg_bank_42);
+
+        //
+        // https://www.silabs.com/documents/public/application-notes/Si5350-Si5351%20FAQ.pdf
+        //
+        // 11.1 "The Int, R and N register values inside the Interpolative Dividers are updated
+        //      when the LSB of R is written via I2C." - Q. does this mean reg 44 or 49 (misprint ?) ???
+        //
+        // 10.1 "All outputs are within +/- 500ps of one another at power up (if pre-programmed)
+        //      or if PLLA and PLLB are reset simultaneously via register 177."
+        //
+        // 17.1 "The PLL can track any abrupt input frequency changes of 3–4% without losing
+        //      lock to it. Any input frequency changes greater than this amount will not
+        //      necessarily track from the input to the output
+
+        // must reset the so called "PLL", in fact the output msynth
+        si5351_fast_reset();
+
+    } else {
+        si5351_write_bulk(26 + pll_stride, sizeof(reg_bank_26), reg_bank_26);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -30,6 +30,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define BASE_XTAL                       27000000L // base xtal freq, over this we apply the correction factor. by default 27 MHz
+
 #define SI5351_BUS_BASE_ADDR            0x60
 #define SI5351_XTAL_FREQ                25000000
 #define SI5351_PLL_FIXED                80000000000ULL
@@ -356,14 +358,40 @@ bool si5351_init(uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr);
 void si5351_reset(void);
 
 /**
+ * @fn void si5351_fast_reset(void)
+ * @brief Reset of the PLLs and multisynths output enable
+
+ * This must be called to soft reset the PLLs and cycle the output of the multisynths: this is the "click" noise source in the RF spectrum.
+ * So it must be avoided at all costs, so this lib just call it at the initialization of the PLLs and when a correction is applied.
+ * If you are concerned with accuracy you can implement a reset every other Mhz to be sure it get exactly on spot.
+ */
+void si5351_fast_reset(void);
+
+/**
  * @fn bool si5351_set_freq(uint64_t freq, enum si5351_clock clk)
  * @brief Sets the clock frequency of the specified CLK output. Frequency range of 8 kHz to 150 MHz
  *
  * @param freq Output frequency in Hz
- * @param clk clk - Clock output (use the si5351_clock enum)
+ * @param clk Clock output (use the si5351_clock enum)
  * @return true: ok
  */
 bool si5351_set_freq(uint64_t freq, enum si5351_clock clk);
+
+/**
+ * @fn void si5351_set_freq2(uint8_t clk, uint32_t freq)
+ * @brief This function set the freq of the corresponding clock.
+ * In tests on Si5351 can work between 7,8 Khz and ~225 Mhz [~250 MHz with overclocking] as usual YMMV
+ * Click noise:
+ * - The lib has a reset programmed [aka: click noise] every time it needs to change the output divider of a particular MSynth, if you move in big steps
+ *   this can lead to an increased rate of click noise per tunning step.
+ * - If you move at a pace of a few Hz each time the output divider will change at a low rate, hence less click noise per tunning step.
+ * - The output divider moves [change] faster at high frequencies, so at HF the clikc noise is at the real minimum possible.
+ * void si5351_set_freq2(uint64_t freq, enum si5351_clock clk)
+ *
+ * @param freq Output frequency in Hz
+ * @param clk Clock output (use the si5351_clock enum)
+ */
+void si5351_set_freq2(uint64_t freq, enum si5351_clock clk);
 
 /**
  * @fn bool si5351_set_freq_manual(uint64_t freq, uint64_t pll_freq, enum si5351_clock clk)
