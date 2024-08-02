@@ -141,7 +141,7 @@
 #define SI5351_OUTPUT_CLK_DIV_128       7
 #define SI5351_OUTPUT_CLK_DIVBY4       (3<<2)
 
-#define SI5351_SSC_PARAM0               149
+#define SI5351_SSC_PARAM0               149 // spread spectrum
 #define SI5351_SSC_PARAM1               150
 #define SI5351_SSC_PARAM2               151
 #define SI5351_SSC_PARAM3               152
@@ -588,7 +588,15 @@ uint8_t si5351_write(uint8_t, uint8_t);
  */
 uint8_t si5351_read(uint8_t addr);
 
-//////////// I2C functional interface ////////////
+/**
+ * @fn void si5351_spread_spectrum(bool enabled)
+ * @brief Enables or disables spread spectrum
+ *
+ * @param enabled Whether spread spectrum output is enabled
+ */
+void si5351_spread_spectrum(bool enabled);
+
+//////////// I2C interface ////////////
 
 /**
  * @fn int si5351_write_xfer(uint8_t, uint8_t*, int)

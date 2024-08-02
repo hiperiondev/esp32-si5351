@@ -1285,6 +1285,18 @@ void si5351_set_ref_freq(uint32_t ref_freq, enum si5351_pll_input ref_osc) {
     //si5351_write(SI5351_PLL_INPUT_SOURCE, reg_val);
 }
 
+void si5351_spread_spectrum(bool enabled) {
+  uint8_t regval = si5351_read(SI5351_SSC_PARAM0);
+  if (enabled) {
+    regval |= 0x80;
+  } else {
+    regval &= ~0x80;
+  }
+  si5351_write(SI5351_SSC_PARAM0, regval);
+}
+
+//////////////////////////////////////////////////////////////////////
+
 uint8_t si5351_write_bulk(uint8_t addr, uint8_t bytes, uint8_t *data) {
     return (si5351_write_xfer(addr, data, bytes));
 }
