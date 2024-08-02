@@ -1302,7 +1302,7 @@ void si5351_spread_spectrum(bool enabled) {
 
 void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
     // this is the work value, with the correction applied via the correction() procedure
-    uint32_t int_xtal = BASE_XTAL;
+    uint32_t int_xtal = SI5351_XTAL_FREQ;
 
     // BAD CONCEPT on the datasheet and AN:
     // The chip has a soft-reset for PLL A & B but in practice the PLL does not need to be reseted.
@@ -1397,10 +1397,10 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
     uint8_t reg_bank_26[] = {
             (MSNx_P3 & 0xFF00) >> 8,                                      // Bits [15:8] of MSNx_P3 in register 26
             MSNx_P3 & 0xFF, (MSNx_P1 & 0x030000L) >> 16,
-            (MSNx_P1 & 0xFF00) >> 8,                                      // Bits [15:8]  of MSNx_P1 in register 29
+            (MSNx_P1 & 0xFF00) >> 8,                                      // Bits [15:8] of MSNx_P1 in register 29
             MSNx_P1 & 0xFF,                                               // Bits [7:0]  of MSNx_P1 in register 30
-            ((MSNx_P3 & 0x0F0000L) >> 12) | ((MSNx_P2 & 0x0F0000) >> 16), // Parts of MSNx_P3 and MSNx_P1
-            (MSNx_P2 & 0xFF00) >> 8,                                      // Bits [15:8]  of MSNx_P2 in register 32
+            ((MSNx_P3 & 0x0F0000L) >> 12) | ((MSNx_P2 & 0x0F0000) >> 16), // Parts       of MSNx_P3 and MSNx_P1
+            (MSNx_P2 & 0xFF00) >> 8,                                      // Bits [15:8] of MSNx_P2 in register 32
             MSNx_P2 & 0xFF                                                // Bits [7:0]  of MSNx_P2 in register 33
     };
 
@@ -1426,11 +1426,11 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
         }
 
         uint8_t reg_bank_42[] = {
-                0,                                // bits [15:8] of MS0_P3 (always 0) in register 42
-                1,                                // bits [7:0]  of MS0_P3 (always 1) in register 43
+                0,                                // bits [15:8]  of MS0_P3 (always 0) in register 42
+                1,                                // bits [7:0]   of MS0_P3 (always 1) in register 43
                 ((MSx_P1 & 0x030000L) >> 16) | R, // bits [17:16] of MSx_P1 in bits [1:0] and R in [7:4] | [3:2]
                 (MSx_P1 & 0xFF00) >> 8,           // bits [15:8]  of MSx_P1 in register 45
-                MSx_P1 & 0xFF,                    // bits [7:0]  of MSx_P1 in register 46
+                MSx_P1 & 0xFF,                    // bits [7:0]   of MSx_P1 in register 46
                 0,                                // bits [19:16] of MS0_P2 and MS0_P3 are always 0
                 0,                                // bits [15:8]  of MS0_P2 are always 0
                 0                                 // bits [7:0]   of MS0_P2 are always 0

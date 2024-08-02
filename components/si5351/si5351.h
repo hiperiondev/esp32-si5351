@@ -30,8 +30,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define BASE_XTAL                       27000000L // base xtal freq, over this we apply the correction factor. by default 27 MHz
-
 #define SI5351_BUS_BASE_ADDR            0x60
 #define SI5351_XTAL_FREQ                25000000
 #define SI5351_PLL_FIXED                80000000000ULL
@@ -221,18 +219,18 @@
  */
 
 /**
- * @enum si5351RDiv
+ * @enum si5351_rdiv
  * @brief
  *
  */
-enum si5351RDiv{
-    SI5351_R_DIV_1   = 0, /**< SI5351_R_DIV_1 */
-    SI5351_R_DIV_2   = 1, /**< SI5351_R_DIV_2 */
-    SI5351_R_DIV_4   = 2, /**< SI5351_R_DIV_4 */
-    SI5351_R_DIV_8   = 3, /**< SI5351_R_DIV_8 */
-    SI5351_R_DIV_16  = 4, /**< SI5351_R_DIV_16 */
-    SI5351_R_DIV_32  = 5, /**< SI5351_R_DIV_32 */
-    SI5351_R_DIV_64  = 6, /**< SI5351_R_DIV_64 */
+enum si5351_rdiv{
+    SI5351_R_DIV_1   = 0, /**< SI5351_R_DIV_1   */
+    SI5351_R_DIV_2   = 1, /**< SI5351_R_DIV_2   */
+    SI5351_R_DIV_4   = 2, /**< SI5351_R_DIV_4   */
+    SI5351_R_DIV_8   = 3, /**< SI5351_R_DIV_8   */
+    SI5351_R_DIV_16  = 4, /**< SI5351_R_DIV_16  */
+    SI5351_R_DIV_32  = 5, /**< SI5351_R_DIV_32  */
+    SI5351_R_DIV_64  = 6, /**< SI5351_R_DIV_64  */
     SI5351_R_DIV_128 = 7, /**< SI5351_R_DIV_128 */
 };
 
@@ -486,7 +484,8 @@ void si5351_set_correction(int32_t corr, enum si5351_pll_input ref_osc);
 
 /**
  * @fn void si5351_set_phase(enum si5351_clock clk, uint8_t phase)
- * @brief Write the 7-bit phase register. This must be used with a user-set PLL frequency so that the user can calculate the proper tuning word based on the PLL period.
+ * @brief Write the 7-bit phase register. This must be used with a user-set PLL frequency so that the user can calculate the proper tuning word based on the
+ * PLL period.
  *
  * @param clk Clock output (use the si5351_clock enum)
  * @param phase 7-bit phase word (in units of VCO/4 period)
@@ -558,7 +557,8 @@ void si5351_set_clock_source(enum si5351_clock clk, enum si5351_clock_source src
 
 /**
  * @fn void si5351_set_clock_disable(enum si5351_clock clk, enum si5351_clock_disable dis_state)
- * @brief Set the state of the clock output when it is disabled. Per page 27 of AN619 (Registers 24 and 25), there are four possible values: low, high, high impedance, and never disabled
+ * @brief Set the state of the clock output when it is disabled. Per page 27 of AN619 (Registers 24 and 25), there are four possible values:
+ * low, high, high impedance, and never disabled
  *
  * @param clk Clock output (use the si5351_clock enum)
  * @param dis_state Desired state of the output upon disable (use the si5351_clock_disable enum)
