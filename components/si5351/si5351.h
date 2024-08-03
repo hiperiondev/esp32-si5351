@@ -654,7 +654,7 @@ void si5351_calc(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num
 void si5351_calc_iq(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num, int32_t *pll_denom, int32_t *out_div, int32_t *out_num, int32_t *out_denom,
         uint8_t *out_rdiv, uint8_t *out_allow_integer_mode);
 
-
+///////////////////////////////// I2C hardware externals /////////////////////////////////  
 /**
  * @fn uint8_t si5351_write_bulk(uint8_t addr, uint8_t bytes, uint8_t *data)
  * @brief
@@ -664,17 +664,17 @@ void si5351_calc_iq(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_
  * @param
  * @return
  */
-uint8_t si5351_write_bulk(uint8_t addr, uint8_t bytes, uint8_t *data);
+extern uint8_t si5351_write_bulk(uint8_t addr, uint8_t bytes, uint8_t *data);
 
 /**
- * @fn uint8_t si5351_write(uint8_t, uint8_t)
+ * @fn uint8_t si5351_write(uint8_t addr, uint8_t data)
  * @brief
  *
  * @param
  * @param
  * @return
  */
-uint8_t si5351_write(uint8_t, uint8_t);
+extern uint8_t si5351_write(uint8_t addr, uint8_t data);
 
 /**
  * @fn uint8_t si5351_read(uint8_t addr)
@@ -683,48 +683,6 @@ uint8_t si5351_write(uint8_t, uint8_t);
  * @param
  * @return
  */
-uint8_t si5351_read(uint8_t addr);
-
-//////////// I2C interface ////////////
-
-/**
- * @fn int si5351_write_xfer(uint8_t, uint8_t*, int)
- * @brief
- *
- * @param
- * @param
- * @param
- * @return
- */
-int si5351_write_xfer(uint8_t, uint8_t*, int);
-
-/**
- * @fn int si5351_read_xfer(uint8_t, uint8_t*, int)
- * @brief
- *
- * @param
- * @param
- * @param
- * @return
- */
-int si5351_read_xfer(uint8_t, uint8_t*, int);
-
-/**
- * @fn void si5351_write_byte(uint8_t, uint8_t)
- * @brief
- *
- * @param
- * @param
- */
-void si5351_write_byte(uint8_t, uint8_t);
-
-/***
- * @fn uint8_t si5351_read_byte(uint8_t)
- * @brief
- *
- * @param
- * @return
- */
-uint8_t si5351_read_byte(uint8_t);
+extern uint8_t si5351_read(uint8_t addr);
 
 #endif /* SI5351_H_ */

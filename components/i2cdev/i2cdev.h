@@ -126,8 +126,7 @@ esp_err_t i2c_dev_give_mutex(i2c_dev_t *dev);
  * @param in_size Number of byte to read
  * @return ESP_OK on success
  */
-esp_err_t i2c_dev_read(const i2c_dev_t *dev, const void *out_data,
-                       size_t out_size, void *in_data, size_t in_size);
+esp_err_t i2c_dev_read(const i2c_dev_t *dev, const void *out_data, size_t out_size, void *in_data, size_t in_size);
 
 /**
  * @brief Write to slave device
@@ -142,9 +141,7 @@ esp_err_t i2c_dev_read(const i2c_dev_t *dev, const void *out_data,
  * @param out_size Size of data to send
  * @return ESP_OK on success
  */
-esp_err_t i2c_dev_write(const i2c_dev_t *dev, const void *out_reg,
-                        size_t out_reg_size, const void *out_data,
-                        size_t out_size);
+esp_err_t i2c_dev_write(const i2c_dev_t *dev, const void *out_reg, size_t out_reg_size, const void *out_data, size_t out_size);
 
 /**
  * @brief Read from register with an 8-bit address
@@ -157,8 +154,7 @@ esp_err_t i2c_dev_write(const i2c_dev_t *dev, const void *out_reg,
  * @param in_size Number of byte to read
  * @return ESP_OK on success
  */
-esp_err_t i2c_dev_read_reg(const i2c_dev_t *dev, uint8_t reg, void *in_data,
-                           size_t in_size);
+esp_err_t i2c_dev_read_reg(const i2c_dev_t *dev, uint8_t reg, void *in_data, size_t in_size);
 
 /**
  * @brief Write to register with an 8-bit address
@@ -171,40 +167,39 @@ esp_err_t i2c_dev_read_reg(const i2c_dev_t *dev, uint8_t reg, void *in_data,
  * @param out_size Size of data to send
  * @return ESP_OK on success
  */
-esp_err_t i2c_dev_write_reg(const i2c_dev_t *dev, uint8_t reg,
-                            const void *out_data, size_t out_size);
+esp_err_t i2c_dev_write_reg(const i2c_dev_t *dev, uint8_t reg, const void *out_data, size_t out_size);
 
-#define I2C_DEV_TAKE_MUTEX(dev)                                                \
-  do {                                                                         \
-    esp_err_t __ = i2c_dev_take_mutex(dev);                                    \
-    if (__ != ESP_OK)                                                          \
-      return __;                                                               \
+#define I2C_DEV_TAKE_MUTEX(dev)              \
+  do {                                       \
+    esp_err_t __ = i2c_dev_take_mutex(dev);  \
+    if (__ != ESP_OK)                        \
+      return __;                             \
   } while (0)
 
-#define I2C_DEV_GIVE_MUTEX(dev)                                                \
-  do {                                                                         \
-    esp_err_t __ = i2c_dev_give_mutex(dev);                                    \
-    if (__ != ESP_OK)                                                          \
-      return __;                                                               \
+#define I2C_DEV_GIVE_MUTEX(dev)              \
+  do {                                       \
+    esp_err_t __ = i2c_dev_give_mutex(dev);  \
+    if (__ != ESP_OK)                        \
+      return __;                             \
   } while (0)
 
-#define I2C_DEV_CHECK(dev, X)                                                  \
-  do {                                                                         \
-    esp_err_t ___ = X;                                                         \
-    if (___ != ESP_OK) {                                                       \
-      I2C_DEV_GIVE_MUTEX(dev);                                                 \
-      return ___;                                                              \
-    }                                                                          \
+#define I2C_DEV_CHECK(dev, X)                \
+  do {                                       \
+    esp_err_t ___ = X;                       \
+    if (___ != ESP_OK) {                     \
+      I2C_DEV_GIVE_MUTEX(dev);               \
+      return ___;                            \
+    }                                        \
   } while (0)
 
-#define I2C_DEV_CHECK_LOGE(dev, X, msg, ...)                                   \
-  do {                                                                         \
-    esp_err_t ___ = X;                                                         \
-    if (___ != ESP_OK) {                                                       \
-      I2C_DEV_GIVE_MUTEX(dev);                                                 \
-      ESP_LOGE(TAG, msg, ##__VA_ARGS__);                                       \
-      return ___;                                                              \
-    }                                                                          \
+#define I2C_DEV_CHECK_LOGE(dev, X, msg, ...) \
+  do {                                       \
+    esp_err_t ___ = X;                       \
+    if (___ != ESP_OK) {                     \
+      I2C_DEV_GIVE_MUTEX(dev);               \
+      ESP_LOGE(TAG, msg, ##__VA_ARGS__);     \
+      return ___;                            \
+    }                                        \
   } while (0)
 
 #endif /* __I2CDEV_H__ */

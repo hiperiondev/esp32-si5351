@@ -29,14 +29,16 @@
 
 #include "si5351.h"
 
+/*
 static uint64_t si5351_pll_calc(enum si5351_pll, uint64_t, struct si5351_reg_set*, int32_t, uint8_t);
 static uint64_t si5351_multisynth_calc(uint64_t, uint64_t, struct si5351_reg_set*);
 static uint64_t si5351_multisynth67_calc(uint64_t, uint64_t, struct si5351_reg_set*);
-static void si5351_update_sys_status(struct si5351_status*);
-static void si5351_update_int_status(struct si5351_int_status*);
-static void si5351_ms_div(enum si5351_clock, uint8_t, uint8_t);
-static uint8_t si5351_select_r_div(uint64_t*);
-static uint8_t si5351_select_r_div_ms67(uint64_t*);
+static     void si5351_update_sys_status(struct si5351_status*);
+static     void si5351_update_int_status(struct si5351_int_status*);
+static     void si5351_ms_div(enum si5351_clock, uint8_t, uint8_t);
+static  uint8_t si5351_select_r_div(uint64_t*);
+static  uint8_t si5351_select_r_div_ms67(uint64_t*);
+*/
 
 struct si5351_status si5351_dev_status = {
         .SYS_INIT = 0,
@@ -1573,19 +1575,4 @@ void si5351_calc_iq(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_
     *pll_mult = Fpll / Fxtal;
     *pll_num = (Fpll % Fxtal) / 24;
     *pll_denom = Fxtal / 24; // denom can't exceed 0xFFFFF
-}
-
-//////////////////////////////////////////////////////////////////////
-
-uint8_t si5351_write_bulk(uint8_t addr, uint8_t bytes, uint8_t *data) {
-    return (si5351_write_xfer(addr, data, bytes));
-}
-
-uint8_t si5351_write(uint8_t addr, uint8_t data) {
-    si5351_write_byte(addr, data);
-    return (0);
-}
-
-uint8_t si5351_read(uint8_t addr) {
-    return (si5351_read_byte(addr));
 }
