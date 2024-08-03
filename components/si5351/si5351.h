@@ -353,6 +353,9 @@ struct si5351_int_status {
     uint8_t LOS_STKY;
 };
 
+extern struct si5351_status si5351_dev_status;
+extern struct si5351_int_status sa5351_dev_int_status;
+
 /**
  * @fn bool si5351_init(uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr)
  * @brief Setup communications to the Si5351 and set the crystal load capacitance.

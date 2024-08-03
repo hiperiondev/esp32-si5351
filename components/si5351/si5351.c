@@ -38,7 +38,7 @@ static void si5351_ms_div(enum si5351_clock, uint8_t, uint8_t);
 static uint8_t si5351_select_r_div(uint64_t*);
 static uint8_t si5351_select_r_div_ms67(uint64_t*);
 
-struct si5351_status dev_status = {
+struct si5351_status si5351_dev_status = {
         .SYS_INIT = 0,
         .LOL_B = 0,
         .LOL_A = 0,
@@ -46,7 +46,7 @@ struct si5351_status dev_status = {
         .REVID = 0
 };
 
-struct si5351_int_status dev_int_status = {
+struct si5351_int_status sa5351_dev_int_status = {
         .SYS_INIT_STKY = 0,
         .LOL_B_STKY = 0,
         .LOL_A_STKY = 0,
@@ -962,8 +962,8 @@ void si5351_drive_strength(enum si5351_clock clk, enum si5351_drive drive) {
 }
 
 void si5351_update_status(void) {
-    si5351_update_sys_status(&dev_status);
-    si5351_update_int_status(&dev_int_status);
+    si5351_update_sys_status(&si5351_dev_status);
+    si5351_update_int_status(&sa5351_dev_int_status);
 }
 
 void si5351_set_correction(int32_t corr, enum si5351_pll_input ref_osc) {
