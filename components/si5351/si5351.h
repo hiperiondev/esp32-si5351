@@ -354,7 +354,7 @@ struct si5351_int_status {
 };
 
 extern struct si5351_status si5351_dev_status;
-extern struct si5351_int_status sa5351_dev_int_status;
+extern struct si5351_int_status si5351_dev_int_status;
 
 /**
  * @fn bool si5351_init(uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr)

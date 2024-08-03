@@ -29,17 +29,6 @@
 
 #include "si5351.h"
 
-/*
-static uint64_t si5351_pll_calc(enum si5351_pll, uint64_t, struct si5351_reg_set*, int32_t, uint8_t);
-static uint64_t si5351_multisynth_calc(uint64_t, uint64_t, struct si5351_reg_set*);
-static uint64_t si5351_multisynth67_calc(uint64_t, uint64_t, struct si5351_reg_set*);
-static     void si5351_update_sys_status(struct si5351_status*);
-static     void si5351_update_int_status(struct si5351_int_status*);
-static     void si5351_ms_div(enum si5351_clock, uint8_t, uint8_t);
-static  uint8_t si5351_select_r_div(uint64_t*);
-static  uint8_t si5351_select_r_div_ms67(uint64_t*);
-*/
-
 struct si5351_status si5351_dev_status = {
         .SYS_INIT = 0,
         .LOL_B = 0,
@@ -48,7 +37,7 @@ struct si5351_status si5351_dev_status = {
         .REVID = 0
 };
 
-struct si5351_int_status sa5351_dev_int_status = {
+struct si5351_int_status si5351_dev_int_status = {
         .SYS_INIT_STKY = 0,
         .LOL_B_STKY = 0,
         .LOL_A_STKY = 0,
@@ -965,7 +954,7 @@ void si5351_drive_strength(enum si5351_clock clk, enum si5351_drive drive) {
 
 void si5351_update_status(void) {
     si5351_update_sys_status(&si5351_dev_status);
-    si5351_update_int_status(&sa5351_dev_int_status);
+    si5351_update_int_status(&si5351_dev_int_status);
 }
 
 void si5351_set_correction(int32_t corr, enum si5351_pll_input ref_osc) {
@@ -1313,11 +1302,11 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
     //   and only reset the "PLL" when this value changes to be sure
     // It's a word (16 bit) because the final max value is 900
     uint16_t omsynth[3] = { 0 };
-    uint8_t o_Rdiv[3] = { 0 };
+    uint8_t o_rdiv[3] = { 0 };
 
-    uint8_t a, R = 1, pll_stride = 0, msyn_stride = 0;
+    uint8_t a, r = 1, pll_stride = 0, msyn_stride = 0;
     uint32_t b, c, f, fvco, outdivider;
-    uint32_t MSx_P1, MSNx_P1, MSNx_P2, MSNx_P3;
+    uint32_t msx_p1, msnx_p1, msnx_p2, msnx_p3;
 
     // Overclock option
 #ifdef SI_OVERCLOCK
@@ -1331,7 +1320,7 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
 
     // use additional Output divider ("R")
     while (outdivider > 900) {
-        R = R * 2;
+        r = r * 2;
         outdivider = outdivider / 2;
     }
 
@@ -1340,38 +1329,38 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
         outdivider--;
 
     // Calculate the PLL-Frequency (given the even divider)
-    fvco = outdivider * R * freq;
+    fvco = outdivider * r * freq;
 
     // Convert the Output Divider to the bit-setting required in register 44
-    switch (R) {
+    switch (r) {
         case 1:
-            R = 0;
+            r = 0;
             break;
         case 2:
-            R = 16;
+            r = 16;
             break;
         case 4:
-            R = 32;
+            r = 32;
             break;
         case 8:
-            R = 48;
+            r = 48;
             break;
         case 16:
-            R = 64;
+            r = 64;
             break;
         case 32:
-            R = 80;
+            r = 80;
             break;
         case 64:
-            R = 96;
+            r = 96;
             break;
         case 128:
-            R = 112;
+            r = 112;
             break;
     }
 
     // we have now the integer part of the output msynth the b & c is fixed below
-    MSx_P1 = 128 * outdivider - 512;
+    msx_p1 = 128 * outdivider - 512;
 
     // calc the a/b/c for the PLL Msynth
     // We will use integer only on the b/c relation, and will >> 5 (/32) both to fit it on the 1048 k limit of C and keep the relation the most accurate
@@ -1386,9 +1375,9 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
     f = (128 * b) / c;
 
     // build the registers to write
-    MSNx_P1 = 128 * a + f - 512;
-    MSNx_P2 = 128 * b - f * c;
-    MSNx_P3 = c;
+    msnx_p1 = 128 * a + f - 512;
+    msnx_p2 = 128 * b - f * c;
+    msnx_p3 = c;
 
     // PLLs and CLK# registers are allocated with a stride, we handle that with
     // the stride var to make code smaller
@@ -1397,42 +1386,41 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
 
     // HEX makes it easier to human read on bit shifts
     uint8_t reg_bank_26[] = {
-            (MSNx_P3 & 0xFF00) >> 8,                                      // Bits [15:8] of MSNx_P3 in register 26
-            MSNx_P3 & 0xFF, (MSNx_P1 & 0x030000L) >> 16,
-            (MSNx_P1 & 0xFF00) >> 8,                                      // Bits [15:8] of MSNx_P1 in register 29
-            MSNx_P1 & 0xFF,                                               // Bits [7:0]  of MSNx_P1 in register 30
-            ((MSNx_P3 & 0x0F0000L) >> 12) | ((MSNx_P2 & 0x0F0000) >> 16), // Parts       of MSNx_P3 and MSNx_P1
-            (MSNx_P2 & 0xFF00) >> 8,                                      // Bits [15:8] of MSNx_P2 in register 32
-            MSNx_P2 & 0xFF                                                // Bits [7:0]  of MSNx_P2 in register 33
+            (msnx_p3 & 0xFF00) >> 8,                                      // Bits [15:8] of MSNx_P3 in register 26
+            msnx_p3 & 0xFF, (msnx_p1 & 0x030000L) >> 16,
+            (msnx_p1 & 0xFF00) >> 8,                                      // Bits [15:8] of MSNx_P1 in register 29
+            msnx_p1 & 0xFF,                                               // Bits [7:0]  of MSNx_P1 in register 30
+            ((msnx_p3 & 0x0F0000L) >> 12) | ((msnx_p2 & 0x0F0000) >> 16), // Parts       of MSNx_P3 and MSNx_P1
+            (msnx_p2 & 0xFF00) >> 8,                                      // Bits [15:8] of MSNx_P2 in register 32
+            msnx_p2 & 0xFF                                                // Bits [7:0]  of MSNx_P2 in register 33
     };
 
     // We could do this here - but move it next to the reg_bank_42
     // Write the output divider msynth only if we need to, in this way we can speed up the frequency changes almost by half the time most of the time
     //   and the main goal is to avoid the nasty click noise on freq change
-    if (omsynth[clk] != outdivider || o_Rdiv[clk] != R) {
+    if (omsynth[clk] != outdivider || o_rdiv[clk] != r) {
 
         // CLK# registers are exactly 8 * clk# bytes stride from a base register.
         msyn_stride = clk * 8;
 
         // keep track of the change
         omsynth[clk] = (uint16_t) outdivider;
-        o_Rdiv[clk] = R; // cache it now, before we OR mask up R for special divide by 4
+        o_rdiv[clk] = r; // cache it now, before we OR mask up R for special divide by 4
 
         // See datasheet, special trick when MSx == 4
         //    MSx_P1 is always 0 if outdivider == 4, from the above equations, so there is
         //    no need to set it to 0. ... MSx_P1 = 128 * outdivider - 512;
         //      See para 4.1.3 on the datasheet.
-
         if (outdivider == 4) {
-            R |= 0x0C;    // bit set OR mask for MSYNTH divide by 4, for reg 44 {3:2]
+            r |= 0x0C;    // bit set OR mask for MSYNTH divide by 4, for reg 44 {3:2]
         }
 
         uint8_t reg_bank_42[] = {
                 0,                                // bits [15:8]  of MS0_P3 (always 0) in register 42
                 1,                                // bits [7:0]   of MS0_P3 (always 1) in register 43
-                ((MSx_P1 & 0x030000L) >> 16) | R, // bits [17:16] of MSx_P1 in bits [1:0] and R in [7:4] | [3:2]
-                (MSx_P1 & 0xFF00) >> 8,           // bits [15:8]  of MSx_P1 in register 45
-                MSx_P1 & 0xFF,                    // bits [7:0]   of MSx_P1 in register 46
+                ((msx_p1 & 0x030000L) >> 16) | r, // bits [17:16] of MSx_P1 in bits [1:0] and R in [7:4] | [3:2]
+                (msx_p1 & 0xFF00) >> 8,           // bits [15:8]  of MSx_P1 in register 45
+                msx_p1 & 0xFF,                    // bits [7:0]   of MSx_P1 in register 46
                 0,                                // bits [19:16] of MS0_P2 and MS0_P3 are always 0
                 0,                                // bits [15:8]  of MS0_P2 are always 0
                 0                                 // bits [7:0]   of MS0_P2 are always 0
@@ -1441,7 +1429,6 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
         // Get the two write bursts as close together as possible, to attempt to reduce any more click glitches. This is at the expense of only 24 increased
         //   bytes compilation size in AVR 328.
         // Everything is already precalculated above, reducing any delay, by not doing calculations between the burst writes.
-
         si5351_write_bulk(26 + pll_stride, sizeof(reg_bank_26), reg_bank_26);
         si5351_write_bulk(42 + msyn_stride, sizeof(reg_bank_42), reg_bank_42);
 
@@ -1457,7 +1444,6 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
         // 17.1 "The PLL can track any abrupt input frequency changes of 3–4% without losing
         //      lock to it. Any input frequency changes greater than this amount will not
         //      necessarily track from the input to the output
-
         // must reset the so called "PLL", in fact the output msynth
         si5351_fast_reset();
 
@@ -1468,6 +1454,21 @@ void si5351_set_freq2(uint64_t freq, enum si5351_clock clk) {
 
 void si5351_calc(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num, int32_t *pll_denom, int32_t *out_div, int32_t *out_num, int32_t *out_denom,
         uint8_t *out_rdiv, uint8_t *out_allow_integer_mode) {
+                // Here we are looking for integer values of a,b,c,x,y,z such as:
+    // N = a + b / c    # pll settings
+    // M = x + y / z    # ms  settings
+    // Fclk = Fxtal * N / M
+    // N in [24, 36]
+    // M in [8, 1800] or M in {4,6}
+    // b < c, y < z
+    // b,c,y,z <= 2**20
+    // c, z != 0
+    // For any Fclk in [500K, 160MHz] this algorithm finds a solution
+    // such as abs(Ffound - Fclk) <= 6 Hz
+    int32_t a, b, c, x, y, z, t;
+    int32_t numerator;
+    int32_t fpll;
+    
     if (fclk < 8000)
         fclk = 8000;
     else if (fclk > 160000000)
@@ -1487,30 +1488,15 @@ void si5351_calc(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num
     // Apply correction, _after_ determining rdiv.
     fclk = fclk - (int32_t) ((((double) fclk) / 100000000.0) * ((double) corr));
 
-    // Here we are looking for integer values of a,b,c,x,y,z such as:
-    // N = a + b / c    # pll settings
-    // M = x + y / z    # ms  settings
-    // Fclk = Fxtal * N / M
-    // N in [24, 36]
-    // M in [8, 1800] or M in {4,6}
-    // b < c, y < z
-    // b,c,y,z <= 2**20
-    // c, z != 0
-    // For any Fclk in [500K, 160MHz] this algorithm finds a solution
-    // such as abs(Ffound - Fclk) <= 6 Hz
-
-    const int32_t Fxtal = 25000000;
-    int32_t a, b, c, x, y, z, t;
-
     if (fclk < 81000000) {
         // Valid for Fclk in 0.5..112.5 MHz range. However an error is > 6 Hz above 81 MHz
         a = 36; // PLL runs @ 900 MHz
         b = 0;
         c = 1;
-        int32_t Fpll = 900000000;
-        x = Fpll / fclk;
+        fpll = 900000000;
+        x = fpll / fclk;
         t = (fclk >> 20) + 1;
-        y = (Fpll % fclk) / t;
+        y = (fpll % fclk) / t;
         z = fclk / t;
     } else {
         // Valid for fclk in 75..160 MHz range
@@ -1524,11 +1510,11 @@ void si5351_calc(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num
         y = 0;
         z = 1;
 
-        int32_t numerator = x * fclk;
-        a = numerator / Fxtal;
-        t = (Fxtal >> 20) + 1;
-        b = (numerator % Fxtal) / t;
-        c = Fxtal / t;
+        numerator = x * fclk;
+        a = numerator / SI5351_XTAL_FREQ;
+        t = (SI5351_XTAL_FREQ >> 20) + 1;
+        b = (numerator % SI5351_XTAL_FREQ) / t;
+        c = SI5351_XTAL_FREQ / t;
     }
 
     *pll_mult = a;
@@ -1541,8 +1527,7 @@ void si5351_calc(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num
 
 void si5351_calc_iq(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num, int32_t *pll_denom, int32_t *out_div, int32_t *out_num, int32_t *out_denom,
         uint8_t *out_rdiv, uint8_t *out_allow_integer_mode) {
-    const int32_t Fxtal = 25000000;
-    int32_t Fpll;
+    int32_t fpll;
 
     if (fclk < 1400000)
         fclk = 1400000;
@@ -1571,8 +1556,8 @@ void si5351_calc_iq(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_
     *out_num = 0;
     *out_denom = 1;
 
-    Fpll = fclk * (*out_div);
-    *pll_mult = Fpll / Fxtal;
-    *pll_num = (Fpll % Fxtal) / 24;
-    *pll_denom = Fxtal / 24; // denom can't exceed 0xFFFFF
+    fpll = fclk * (*out_div);
+    *pll_mult = fpll / SI5351_XTAL_FREQ;
+    *pll_num = (fpll % SI5351_XTAL_FREQ) / 24;
+    *pll_denom = SI5351_XTAL_FREQ / 24; // denom can't exceed 0xFFFFF
 }
