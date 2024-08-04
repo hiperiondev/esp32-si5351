@@ -46,7 +46,7 @@ void setup() {
   si5351_set_freq(1000000000ULL, SI5351_CLK0);
 
   si5351_update_status();
-  // delay(500);
+  vTaskDelay(pdMS_TO_TICKS(500));
 }
 
 void loop() {
@@ -58,5 +58,5 @@ void loop() {
   printf("  LOS: %d", si5351_dev_status.LOS);
   printf("  REVID: %d\n", si5351_dev_status.REVID);
 
-  // delay(10000);
+  vTaskDelay(pdMS_TO_TICKS(1000));
 }

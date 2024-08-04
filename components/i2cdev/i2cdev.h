@@ -29,7 +29,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
-#define CONFIG_I2CDEV_TIMEOUT 1
+#define I2CDEV_TIMEOUT 1000
 
 #if HELPER_TARGET_IS_ESP8266
 #define I2CDEV_MAX_STRETCH_TIME 0xffffffff

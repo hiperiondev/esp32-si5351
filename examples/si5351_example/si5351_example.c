@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "si5351_h"
 
@@ -41,7 +41,7 @@ void setup(void) {
   // Query a status update and wait a bit to let the Si5351 populate the
   // status flags correctly.
   si5351_update_status();
-  // delay(500);
+  vTaskDelay(pdMS_TO_TICKS(500));
 }
 
 void loop() {
@@ -53,5 +53,5 @@ void loop() {
   printf("  LOS: %d", si5351_dev_status.LOS);
   printf("  REVID: %d\n", si5351_dev_status.REVID);
 
-  //delay(10000);
+  vTaskDelay(pdMS_TO_TICKS(1000));
 }

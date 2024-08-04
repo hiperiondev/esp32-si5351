@@ -76,7 +76,7 @@ void loop(void) {
       unsigned long freq = startFreq + (freqstep * i);
       si5351_set_freq(freq * SI5351_FREQ_MULT, SI5351_CLK0);
       analogWrite(analogpin, map(i, 0, steps, 0, 255));
-      delay(delaytime);
+      vTaskDelay(pdMS_TO_TICKS(delaytime));
     }
     si5351_output_enable(SI5351_CLK0, 0);
   }
@@ -90,7 +90,7 @@ void loop(void) {
         unsigned long freq = startFreq + (freqstep * i);
         si5351_set_freq(freq * SI5351_FREQ_MULT, SI5351_CLK0);
         analogWrite(analogpin, map(i, 0, steps, 0, 255));
-        delay(delaytime);
+        vTaskDelay(pdMS_TO_TICKS(delaytime));
         if (Serial.available() > 0) // see if incoming serial data:
         {
           inData = Serial.read(); // read oldest byte in serial buffer:
@@ -129,7 +129,7 @@ void loop(void) {
       printf(steps);
       printf(';');
       printf(-i);
-      delay(10); // delay in between reads for stability
+      vTaskDelay(pdMS_TO_TICKS(10)); // delay in between reads for stability
     }
     inData = 0;
   }

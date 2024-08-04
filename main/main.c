@@ -3,10 +3,11 @@
  * * Project Site: https://github.com/hiperiondev/esp32-si5351 *
  *
  * This is based on other projects:
- *    Si5351 library for Arduino: Jason Milldrum <milldrum@gmail.com>, Dana H. Myers <k6jq@comcast.net>
- *    HAL-based Si5351 driver for STM32 : https://github.com/afiskon/stm32-si5351
- *    Arduino Si5351 library tuned for size and click free: https://github.com/pavelmc/Si5351mcu
- *    Others (see individual files)
+ *    Si5351 library for Arduino: Jason Milldrum <milldrum@gmail.com>, Dana H.
+ * Myers <k6jq@comcast.net> HAL-based Si5351 driver for STM32 :
+ * https://github.com/afiskon/stm32-si5351 Arduino Si5351 library tuned for size
+ * and click free: https://github.com/pavelmc/Si5351mcu Others (see individual
+ * files)
  *
  *    please contact their authors for more information.
  *
@@ -26,11 +27,30 @@
  * Boston, MA 02110-1301, USA.
  */
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <i2cdev.h>
 #include <stdio.h>
 
 #include "si5351.h"
 
-void app_main(void)
-{
+void task(void *ignore) {
+  while (1) {
+    printf("\n\n");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
 
+void app_main() {
+  // Init i2cdev library
+  ESP_ERROR_CHECK(i2cdev_init());
+  
+  // Start task
+  xTaskCreate(
+    task, "i2c_scanner",
+    configMINIMAL_STACK_SIZE * 3,
+    NULL,
+    5,
+    NULL
+    );
 }

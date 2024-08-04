@@ -120,7 +120,7 @@ void loop(void) {
   si5351_update_status();
   if (si5351_dev_status.SYS_INIT == 1) {
     printf("Initialising Si5351, you shouldn't see many of these!\n");
-    // delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
   } else {
     printf("Adjust until your frequency counter reads as close to 10 MHz as possible.\n");
     printf("Press 'q' when complete.\n");
