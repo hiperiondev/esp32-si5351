@@ -4,8 +4,8 @@
  *
  * This is based on other projects:
  *    Si5351 library for Arduino: Jason Milldrum <milldrum@gmail.com>, Dana H. Myers <k6jq@comcast.net>
- *    HAL-based Si5351 driver for STM32 :
- *    https://github.com/afiskon/stm32-si5351 Arduino Si5351 library tuned for size and click free: https://github.com/pavelmc/Si5351mcu
+ *    HAL-based Si5351 driver for STM32: https://github.com/afiskon/stm32-si5351
+ *    Arduino Si5351 library tuned for size and click free: https://github.com/pavelmc/Si5351mcu
  *    Others (see individual files)
  *
  *    please contact their authors for more information.
@@ -253,29 +253,29 @@ static uint64_t si5351_multisynth67_calc(uint64_t freq, uint64_t pll_freq, struc
     }
 }
 
-static void si5351_update_sys_status(struct si5351_status* status) {
+static void si5351_update_sys_status(si5351_t *si5351_dev) {
     uint8_t reg_val = 0;
 
     reg_val = si5351_read(SI5351_DEVICE_STATUS);
 
     // Parse the register
-    status->SYS_INIT = (reg_val >> 7) & 0x01;
-    status->LOL_B = (reg_val >> 6) & 0x01;
-    status->LOL_A = (reg_val >> 5) & 0x01;
-    status->LOS = (reg_val >> 4) & 0x01;
-    status->REVID = reg_val & 0x03;
+    si5351_dev->si5351_dev_status.SYS_INIT = (reg_val >> 7) & 0x01;
+    si5351_dev->si5351_dev_status.LOL_B = (reg_val >> 6) & 0x01;
+    si5351_dev->si5351_dev_status.LOL_A = (reg_val >> 5) & 0x01;
+    si5351_dev->si5351_dev_status.LOS = (reg_val >> 4) & 0x01;
+    si5351_dev->si5351_dev_status.REVID = reg_val & 0x03;
 }
 
-static void si5351_update_int_status(struct si5351_int_status* int_status) {
+static void si5351_update_int_status(si5351_t *si5351_dev) {
     uint8_t reg_val = 0;
 
     reg_val = si5351_read(SI5351_INTERRUPT_STATUS);
 
     // Parse the register
-    int_status->SYS_INIT_STKY = (reg_val >> 7) & 0x01;
-    int_status->LOL_B_STKY = (reg_val >> 6) & 0x01;
-    int_status->LOL_A_STKY = (reg_val >> 5) & 0x01;
-    int_status->LOS_STKY = (reg_val >> 4) & 0x01;
+    si5351_dev->si5351_dev_int_status.SYS_INIT_STKY = (reg_val >> 7) & 0x01;
+    si5351_dev->si5351_dev_int_status.LOL_B_STKY = (reg_val >> 6) & 0x01;
+    si5351_dev->si5351_dev_int_status.LOL_A_STKY = (reg_val >> 5) & 0x01;
+    si5351_dev->si5351_dev_int_status.LOS_STKY = (reg_val >> 4) & 0x01;
 }
 
 static void si5351_ms_div(si5351_t* si5351_dev, enum si5351_clock clk, uint8_t r_div, uint8_t div_by_4) {
@@ -952,8 +952,8 @@ void si5351_drive_strength(si5351_t* si5351_dev, enum si5351_clock clk, enum si5
 }
 
 void si5351_update_status(si5351_t* si5351_dev) {
-    si5351_update_sys_status(&si5351_dev->si5351_dev_status);
-    si5351_update_int_status(&si5351_dev->si5351_dev_int_status);
+    si5351_update_sys_status(si5351_dev);
+    si5351_update_int_status(si5351_dev);
 }
 
 void si5351_set_correction(si5351_t* si5351_dev, int32_t corr, enum si5351_pll_input ref_osc) {
