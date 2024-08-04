@@ -705,35 +705,4 @@ void si5351_calc(si5351_t* si5351_dev, int32_t fclk, int32_t corr, int32_t* pll_
 void si5351_calc_iq(si5351_t* si5351_dev, int32_t fclk, int32_t corr, int32_t* pll_mult, int32_t* pll_num, int32_t* pll_denom, int32_t* out_div,
                     int32_t* out_num, int32_t* out_denom, uint8_t* out_rdiv, uint8_t* out_allow_integer_mode);
 
-///////////////////////////////// I2C hardware externals ////////////////////////////////////
-/**
- * @fn uint8_t si5351_write_bulk(uint8_t addr, uint8_t bytes, uint8_t *data)
- * @brief
- *
- * @param addr Register
- * @param bytes Data length
- * @param data Data array
- * @return
- */
-extern uint8_t si5351_write_bulk(uint8_t addr, uint8_t bytes, uint8_t* data);
-
-/**
- * @fn uint8_t si5351_write(uint8_t addr, uint8_t data)
- * @brief
- *
- * @param addr Register
- * @param data Data value
- * @return
- */
-extern uint8_t si5351_write(uint8_t addr, uint8_t data);
-
-/**
- * @fn uint8_t si5351_read(uint8_t addr)
- * @brief
- *
- * @param addr Register
- * @return Register value
- */
-extern uint8_t si5351_read(uint8_t addr);
-
 #endif /* SI5351_H_ */
