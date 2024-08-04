@@ -4,6 +4,8 @@
  *
  * This is based on other projects:
  *    Si5351 library for Arduino: Jason Milldrum <milldrum@gmail.com>, Dana H. Myers <k6jq@comcast.net>
+ *    HAL-based Si5351 driver for STM32 : https://github.com/afiskon/stm32-si5351
+ *    Arduino Si5351 library tuned for size and click free: https://github.com/pavelmc/Si5351mcu
  *    Others (see individual files)
  *
  *    please contact their authors for more information.

@@ -1,6 +1,6 @@
 /*
- * si5351_vcxo.ino - Example for using the Si5351B VCXO functions
- * with Si5351Arduino library
+ * si5351_vcxo.c - Example for using the Si5351B VCXO functions
+ *                 with Si5351 library
  *
  * Copyright (C) 2016 Jason Milldrum <milldrum@gmail.com>
  *

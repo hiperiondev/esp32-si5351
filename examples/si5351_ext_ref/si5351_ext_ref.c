@@ -1,6 +1,6 @@
 /*
- * si5351_ext_ref.ino - Simple example of using an external reference
- *                      clock with the Si5351Arduino library
+ * si5351_ext_ref.c - Simple example of using an external reference
+ *                    clock with the Si5351 library
  *
  * Copyright (C) 2016 Jason Milldrum <milldrum@gmail.com>
  *

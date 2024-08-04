@@ -1,5 +1,5 @@
 /*
- * si5351_phase.ino - Example for setting phase with Si5351Arduino library
+ * si5351_phase.c - Example for setting phase with Si5351 library
  *
  * Copyright (C) 2015 - 2016 Jason Milldrum <milldrum@gmail.com>
  *

@@ -1,5 +1,5 @@
 /*
- * si5351_sweeper.ino - Si5351 Simple Sweep Generator
+ * si5351_sweeper.c - Si5351 Simple Sweep Generator
  *
  * Copyright (c) 2016 Thomas S. Knutsen <la3pna@gmail.com>
  *

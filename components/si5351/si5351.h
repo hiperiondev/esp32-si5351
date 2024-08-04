@@ -4,6 +4,8 @@
  *
  * This is based on other projects:
  *    Si5351 library for Arduino: Jason Milldrum <milldrum@gmail.com>, Dana H. Myers <k6jq@comcast.net>
+ *    HAL-based Si5351 driver for STM32 : https://github.com/afiskon/stm32-si5351
+ *    Arduino Si5351 library tuned for size and click free: https://github.com/pavelmc/Si5351mcu
  *    Others (see individual files)
  *
  *    please contact their authors for more information.
@@ -204,19 +206,17 @@
         __rem;                            \
  })
 
-// enum si5351_variant - SiLabs Si5351 chip variant
-// @SI5351_VARIANT_A: Si5351A (8 output clocks, XTAL input)
-// @SI5351_VARIANT_A3: Si5351A MSOP10 (3 output clocks, XTAL input)
-// @SI5351_VARIANT_B: Si5351B (8 output clocks, XTAL/VXCO input)
-// @SI5351_VARIANT_C: Si5351C (8 output clocks, XTAL/CLKIN input)
-/*
- enum si5351_variant {
-    SI5351_VARIANT_A = 1,  //
-    SI5351_VARIANT_A3 = 2, //
-    SI5351_VARIANT_B = 3,  //
-    SI5351_VARIANT_C = 4,  //
- };
+/**
+ * @enum si5351_variant
+ * @brief SiLabs Si5351 chip variant
+ *
  */
+enum si5351_variant {
+  SI5351_VARIANT_A  = 1, /**< Si5351A (8 output clocks, XTAL input)        */
+  SI5351_VARIANT_A3 = 2, /**< Si5351A MSOP10 (3 output clocks, XTAL input) */
+  SI5351_VARIANT_B  = 3, /**< Si5351B (8 output clocks, XTAL/VXCO input)   */
+  SI5351_VARIANT_C  = 4, /**< Si5351C (8 output clocks, XTAL/CLKIN input)  */
+};
 
 /**
  * @enum si5351_rdiv
@@ -240,14 +240,14 @@ enum si5351_rdiv{
  *
  */
 enum si5351_clock {
-    SI5351_CLK0, //
-    SI5351_CLK1, //
-    SI5351_CLK2, //
-    SI5351_CLK3, //
-    SI5351_CLK4, //
-    SI5351_CLK5, //
-    SI5351_CLK6, //
-    SI5351_CLK7  //
+  SI5351_CLK0, /**< SI5351_CLK0 */
+  SI5351_CLK1, /**< SI5351_CLK1 */
+  SI5351_CLK2, /**< SI5351_CLK2 */
+  SI5351_CLK3, /**< SI5351_CLK3 */
+  SI5351_CLK4, /**< SI5351_CLK4 */
+  SI5351_CLK5, /**< SI5351_CLK5 */
+  SI5351_CLK6, /**< SI5351_CLK6 */
+  SI5351_CLK7, /**< SI5351_CLK7 */
 };
 
 /**
@@ -256,8 +256,8 @@ enum si5351_clock {
  *
  */
 enum si5351_pll {
-    SI5351_PLLA, //
-    SI5351_PLLB  //
+    SI5351_PLLA, /**< SI5351_PLLA */
+    SI5351_PLLB  /**< SI5351_PLLB */
 };
 
 /**
@@ -266,10 +266,10 @@ enum si5351_pll {
  *
  */
 enum si5351_drive {
-    SI5351_DRIVE_2MA, //
-    SI5351_DRIVE_4MA, //
-    SI5351_DRIVE_6MA, //
-    SI5351_DRIVE_8MA  //
+  SI5351_DRIVE_2MA, /**< SI5351_DRIVE_2MA */
+  SI5351_DRIVE_4MA, /**< SI5351_DRIVE_4MA */
+  SI5351_DRIVE_6MA, /**< SI5351_DRIVE_6MA */
+  SI5351_DRIVE_8MA, /**< SI5351_DRIVE_8MA */
 };
 
 /**
@@ -278,10 +278,10 @@ enum si5351_drive {
  *
  */
 enum si5351_clock_source {
-    SI5351_CLK_SRC_XTAL,  //
-    SI5351_CLK_SRC_CLKIN, //
-    SI5351_CLK_SRC_MS0,   //
-    SI5351_CLK_SRC_MS     //
+  SI5351_CLK_SRC_XTAL,  /**< SI5351_CLK_SRC_XTAL  */
+  SI5351_CLK_SRC_CLKIN, /**< SI5351_CLK_SRC_CLKIN */
+  SI5351_CLK_SRC_MS0,   /**< SI5351_CLK_SRC_MS0   */
+  SI5351_CLK_SRC_MS,    /**< SI5351_CLK_SRC_MS    */
 };
 
 /**
@@ -290,10 +290,10 @@ enum si5351_clock_source {
  *
  */
 enum si5351_clock_disable {
-    SI5351_CLK_DISABLE_LOW,  //
-    SI5351_CLK_DISABLE_HIGH, //
-    SI5351_CLK_DISABLE_HI_Z, //
-    SI5351_CLK_DISABLE_NEVER //
+  SI5351_CLK_DISABLE_LOW,   /**< SI5351_CLK_DISABLE_LOW   */
+  SI5351_CLK_DISABLE_HIGH,  /**< SI5351_CLK_DISABLE_HIGH  */
+  SI5351_CLK_DISABLE_HI_Z,  /**< SI5351_CLK_DISABLE_HI_Z  */
+  SI5351_CLK_DISABLE_NEVER, /**< SI5351_CLK_DISABLE_NEVER */
 };
 
 /**
@@ -302,9 +302,9 @@ enum si5351_clock_disable {
  *
  */
 enum si5351_clock_fanout {
-    SI5351_FANOUT_CLKIN, //
-    SI5351_FANOUT_XO,    //
-    SI5351_FANOUT_MS     //
+  SI5351_FANOUT_CLKIN, /**< SI5351_FANOUT_CLKIN */
+  SI5351_FANOUT_XO,    /**< SI5351_FANOUT_XO    */
+  SI5351_FANOUT_MS,    /**< SI5351_FANOUT_MS    */
 };
 
 /**
@@ -313,8 +313,8 @@ enum si5351_clock_fanout {
  *
  */
 enum si5351_pll_input {
-    SI5351_PLL_INPUT_XO,   //
-    SI5351_PLL_INPUT_CLKIN //
+    SI5351_PLL_INPUT_XO,   /**< SI5351_PLL_INPUT_XO    */
+    SI5351_PLL_INPUT_CLKIN /**< SI5351_PLL_INPUT_CLKIN */
 };
 
 /**
@@ -323,9 +323,9 @@ enum si5351_pll_input {
  *
  */
 struct si5351_reg_set {
-    uint32_t p1;
-    uint32_t p2;
-    uint32_t p3;
+    uint32_t p1; /**< p1 */
+    uint32_t p2; /**< p2 */
+    uint32_t p3; /**< p3 */
 };
 
 /**
@@ -334,11 +334,11 @@ struct si5351_reg_set {
  *
  */
 struct si5351_status {
-    uint8_t SYS_INIT;
-    uint8_t LOL_B;
-    uint8_t LOL_A;
-    uint8_t LOS;
-    uint8_t REVID;
+    uint8_t SYS_INIT; /**< SYS_INIT */
+    uint8_t LOL_B;    /**< LOL_B    */
+    uint8_t LOL_A;    /**< LOL_A    */
+    uint8_t LOS;      /**< LOS      */
+    uint8_t REVID;    /**< REVID    */
 };
 
 /**
@@ -347,10 +347,10 @@ struct si5351_status {
  *
  */
 struct si5351_int_status {
-    uint8_t SYS_INIT_STKY;
-    uint8_t LOL_B_STKY;
-    uint8_t LOL_A_STKY;
-    uint8_t LOS_STKY;
+    uint8_t SYS_INIT_STKY; /**< SYS_INIT_STKY */
+    uint8_t LOL_B_STKY;    /**< LOL_B_STKY    */
+    uint8_t LOL_A_STKY;    /**< LOL_A_STKY    */
+    uint8_t LOS_STKY;      /**< LOS_STKY      */
 };
 
 extern struct si5351_status si5351_dev_status;
@@ -397,6 +397,7 @@ bool si5351_set_freq(uint64_t freq, enum si5351_clock clk);
 /**
  * @fn void si5351_set_freq2(uint8_t clk, uint32_t freq)
  * @brief This function set the freq of the corresponding clock.
+ * (from https://github.com/pavelmc/Si5351mcu)
  * In tests on Si5351 can work between 7,8 Khz and ~225 Mhz [~250 MHz with overclocking] as usual YMMV
  * Click noise:
  * - The lib has a reset programmed [aka: click noise] every time it needs to change the output divider of a particular MSynth, if you move in big steps
@@ -636,7 +637,7 @@ void si5351_calc(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num
 /**
  * @fn void si5351_calc_iq(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_num, int32_t *pll_denom, int32_t *out_div, int32_t *out_num,
  *        int32_t *out_denom, uint8_t *out_rdiv, uint8_t *out_allow_integer_mode);
- * @brief  finds PLL and MS parameters that give phase shift 90° between two channels.
+ * @brief Finds PLL and MS parameters that give phase shift 90° between two channels.
  * If 0 and (uint8_t)out_div are passed as phaseOffset for these channels. Channels should use the same PLL to make it work.
  * fclk can be from 1.4 MHz to 100 MHz. The actual frequency will differ less than 4 Hz from given fclk, assuming `correction` is right
  *
@@ -659,9 +660,9 @@ void si5351_calc_iq(int32_t fclk, int32_t corr, int32_t *pll_mult, int32_t *pll_
  * @fn uint8_t si5351_write_bulk(uint8_t addr, uint8_t bytes, uint8_t *data)
  * @brief
  *
- * @param
- * @param
- * @param
+ * @param addr First register
+ * @param bytes Data length
+ * @param data Data array
  * @return
  */
 extern uint8_t si5351_write_bulk(uint8_t addr, uint8_t bytes, uint8_t *data);
@@ -670,9 +671,9 @@ extern uint8_t si5351_write_bulk(uint8_t addr, uint8_t bytes, uint8_t *data);
  * @fn uint8_t si5351_write(uint8_t addr, uint8_t data)
  * @brief
  *
- * @param
- * @param
- * @return
+ * @param addr Register
+ * @param data Data value
+ * @return 
  */
 extern uint8_t si5351_write(uint8_t addr, uint8_t data);
 
@@ -680,8 +681,8 @@ extern uint8_t si5351_write(uint8_t addr, uint8_t data);
  * @fn uint8_t si5351_read(uint8_t addr)
  * @brief
  *
- * @param
- * @return
+ * @param add
+ * @return Register value
  */
 extern uint8_t si5351_read(uint8_t addr);
 

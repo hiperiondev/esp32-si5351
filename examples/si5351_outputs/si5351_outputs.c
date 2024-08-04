@@ -1,6 +1,6 @@
 /*
- * si5351_outputs.ino - How to set different output sources
- *                      with the Si5351Arduino library
+ * si5351_outputs.c - How to set different output sources
+ *                    with the Si5351 library
  *
  * Copyright (C) 2016 Jason Milldrum <milldrum@gmail.com>
  *

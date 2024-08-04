@@ -1,6 +1,6 @@
 /*
  * si5351_clk67_example.c - Simple example of setting CLK6 and CLK7
- *                            outputs using Si5351Arduino library
+ *                          outputs using Si5351 library
  *
  * Copyright (C) 2016 Jason Milldrum <milldrum@gmail.com>
  *

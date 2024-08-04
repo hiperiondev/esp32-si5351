@@ -1,6 +1,6 @@
 /*
  * si5351_calibration.c - Simple calibration routine for the Si5351
- *                          breakout board.
+ *                        breakout board.
  *
  * Copyright 2015 - 2018 Paul Warren <pwarren@pwarren.id.au>
  *                       Jason Milldrum <milldrum@gmail.com>
