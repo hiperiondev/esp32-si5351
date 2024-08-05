@@ -7,3 +7,4 @@ DerivePointerAlignment: false
 PointerAlignment: Left
 ColumnLimit: 160
 IndentCaseLabels: true
+AlignConsecutiveMacros: true
