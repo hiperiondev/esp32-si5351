@@ -42,7 +42,9 @@ static inline int8_t si5351_read(si5351_t* si5351_dev, uint8_t addr) {
     return val;
 }
 
-static inline uint8_t si5351_write(si5351_t* si5351_dev, uint8_t addr, uint8_t data) { return i2c_dev_read_reg(&(si5351_dev->i2c_dev), addr, (void*)&data, 1); }
+static inline uint8_t si5351_write(si5351_t* si5351_dev, uint8_t addr, uint8_t data) {
+    return i2c_dev_read_reg(&(si5351_dev->i2c_dev), addr, (void*)&data, 1);
+}
 
 static inline uint8_t si5351_write_bulk(si5351_t* si5351_dev, uint8_t addr, uint8_t bytes, uint8_t* data) {
     return i2c_dev_read_reg(&(si5351_dev->i2c_dev), addr, (void*)&data, bytes);
@@ -268,7 +270,7 @@ static uint64_t si5351_multisynth67_calc(uint64_t freq, uint64_t pll_freq, struc
 static void si5351_update_sys_status(si5351_t* si5351_dev) {
     uint8_t reg_val = 0;
 
-    i2c_dev_read_reg(&si5351_dev->i2c_dev, SI5351_DEVICE_STATUS, &reg_val, 1);
+    reg_val = si5351_read(si5351_dev, SI5351_DEVICE_STATUS);
 
     // Parse the register
     si5351_dev->si5351_dev_status.SYS_INIT = (reg_val >> 7) & 0x01;
@@ -281,7 +283,7 @@ static void si5351_update_sys_status(si5351_t* si5351_dev) {
 static void si5351_update_int_status(si5351_t* si5351_dev) {
     uint8_t reg_val = 0;
 
-    i2c_dev_read_reg(&si5351_dev->i2c_dev, SI5351_INTERRUPT_STATUS, &reg_val, 1);
+    reg_val = si5351_read(si5351_dev, SI5351_INTERRUPT_STATUS);
 
     // Parse the register
     si5351_dev->si5351_dev_int_status.SYS_INIT_STKY = (reg_val >> 7) & 0x01;
