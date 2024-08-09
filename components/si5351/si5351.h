@@ -366,7 +366,8 @@ typedef struct si5351_s {
 } si5351_t;
 
 /**
- * @fn bool si5351_init(si5351_t* si5351_dev, uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr)
+ * @fn esp_err_t si5351_init(si5351_t* si5351_dev, uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t
+ *                           scl_gpio, uint32_t clk_speed);
  * @brief Setup communications to the Si5351 and set the crystal load capacitance.
  *
  * @param si5351_dev Device
@@ -375,7 +376,8 @@ typedef struct si5351_s {
  * @param corr Frequency correction constant in parts-per-billion
  * @return boolean that indicates whether a device was found on the desired I2C address.
  */
-esp_err_t si5351_init(si5351_t* si5351_dev, uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio);
+esp_err_t si5351_init(si5351_t* si5351_dev, uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio,
+                      uint32_t clk_speed);
 
 /**
  * @fn void si5351_reset(si5351_t* si5351_dev)
