@@ -30,38 +30,101 @@
 #include <esp_log.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
-#include "i2cdev.h"
+#include "driver/i2c_master.h"
+
 #include "si5351.h"
+
+static const char *TAG = "si5351";
 
 /////////////////////////////// I2C functions ///////////////////////////////
 
-static inline int8_t si5351_i2c_init(si5351_t* si5351_dev, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio, uint32_t clk_speed) {
-    si5351_dev->i2c_dev.port = port;
-    si5351_dev->i2c_dev.addr = SI5351_BUS_BASE_ADDR;
-    si5351_dev->i2c_dev.cfg.sda_io_num = sda_gpio;
-    si5351_dev->i2c_dev.cfg.scl_io_num = scl_gpio;
-    si5351_dev->i2c_dev.cfg.master.clk_speed = clk_speed;
+int8_t si5351_i2c_init(si5351_t* si5351_dev, i2c_port_num_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio, uint32_t clk_speed) {
+    si5351_dev->i2c_dev.i2c_bus_config.clk_source = I2C_CLK_SRC_DEFAULT;
+    si5351_dev->i2c_dev.i2c_bus_config.i2c_port = I2C_NUM_0;
+    si5351_dev->i2c_dev.i2c_bus_config.scl_io_num = scl_gpio;
+    si5351_dev->i2c_dev.i2c_bus_config.sda_io_num = sda_gpio;
+    si5351_dev->i2c_dev.i2c_bus_config.glitch_ignore_cnt = 7;
+    si5351_dev->i2c_dev.i2c_bus_config.flags.enable_internal_pullup = true;
+    //si5351_dev->i2c_dev.i2c_bus_config.intr_priority = 0;
+    //si5351_dev->i2c_dev.i2c_bus_config.trans_queue_depth = 128;
 
-    if (i2c_dev_create_mutex(&si5351_dev->i2c_dev) != ESP_OK) {
+    si5351_dev->i2c_dev.i2c_dev_conf.dev_addr_length = I2C_ADDR_BIT_LEN_7;
+    si5351_dev->i2c_dev.i2c_dev_conf.device_address = SI5351_BUS_BASE_ADDR;
+    si5351_dev->i2c_dev.i2c_dev_conf.scl_speed_hz = clk_speed;
+
+    if (i2c_new_master_bus(&(si5351_dev->i2c_dev.i2c_bus_config), &(si5351_dev->i2c_dev.i2c_bus_handle)) != ESP_OK) {
+        ESP_LOGI(TAG, "i2c new master bus FAIL");
+        return ESP_FAIL;
+    }
+    ESP_LOGI(TAG, "i2c new master bus OK");
+
+    if (i2c_master_probe(si5351_dev->i2c_dev.i2c_bus_handle, SI5351_BUS_BASE_ADDR, SI5351_I2C_TIMEOUT_MS) != ESP_OK) {
+        ESP_LOGI(TAG, "device not found");
+        return ESP_FAIL;
+    }
+    ESP_LOGI(TAG, "device found at address: 0x%02x", SI5351_BUS_BASE_ADDR);
+
+    return ESP_OK;
+}
+
+static int8_t si5351_i2c_read(si5351_t* si5351_dev, uint8_t addr) {
+    uint8_t val = 0;
+
+    if (i2c_master_bus_add_device(si5351_dev->i2c_dev.i2c_bus_handle, &(si5351_dev->i2c_dev.i2c_dev_conf), &(si5351_dev->i2c_dev.i2c_dev_handle)) != ESP_OK) {
+        return 0;
+    }
+
+    if (i2c_master_transmit_receive(si5351_dev->i2c_dev.i2c_dev_handle, &addr, 1, &val, 1, SI5351_I2C_TIMEOUT_MS) != ESP_OK) {
+        return 0;
+    }
+
+    if (i2c_master_bus_rm_device(si5351_dev->i2c_dev.i2c_dev_handle) != ESP_OK) {
+        return 0;
+    }
+
+    return val;
+}
+
+static uint8_t si5351_i2c_write(si5351_t* si5351_dev, uint8_t addr, uint8_t data) {
+    uint8_t dataw[2];
+
+    dataw[0] = addr;
+    dataw[1] = data;
+
+    if (i2c_master_bus_add_device(si5351_dev->i2c_dev.i2c_bus_handle, &(si5351_dev->i2c_dev.i2c_dev_conf), &(si5351_dev->i2c_dev.i2c_dev_handle)) != ESP_OK) {
+        return ESP_FAIL;
+    }
+
+    if (i2c_master_transmit(si5351_dev->i2c_dev.i2c_dev_handle, dataw, 2, SI5351_I2C_TIMEOUT_MS) != ESP_OK) {
+        return ESP_FAIL;
+    }
+
+    if (i2c_master_bus_rm_device(si5351_dev->i2c_dev.i2c_dev_handle) != ESP_OK) {
         return ESP_FAIL;
     }
 
     return ESP_OK;
 }
 
-static inline int8_t si5351_i2c_read(si5351_t* si5351_dev, uint8_t addr) {
-    uint8_t val = 0;
-    i2c_dev_read_reg(&(si5351_dev->i2c_dev), addr, (void*)&val, 1);
-    return val;
-}
-
-static inline uint8_t si5351_i2c_write(si5351_t* si5351_dev, uint8_t addr, uint8_t data) {
-    return i2c_dev_read_reg(&(si5351_dev->i2c_dev), addr, (void*)&data, 1);
-}
-
 static inline uint8_t si5351_i2c_write_bulk(si5351_t* si5351_dev, uint8_t addr, uint8_t bytes, uint8_t* data) {
-    return i2c_dev_read_reg(&(si5351_dev->i2c_dev), addr, (void*)&data, bytes);
+    uint8_t dataw[bytes + 1];
+
+    dataw[0] = addr;
+    memcpy(dataw + 1, data, bytes);
+
+    if (i2c_master_bus_add_device(si5351_dev->i2c_dev.i2c_bus_handle, &(si5351_dev->i2c_dev.i2c_dev_conf), &(si5351_dev->i2c_dev.i2c_dev_handle)) != ESP_OK) {
+        return ESP_FAIL;
+    }
+
+    uint8_t ret = i2c_master_transmit(si5351_dev->i2c_dev.i2c_dev_handle, dataw, bytes + 1, SI5351_I2C_TIMEOUT_MS);
+
+    if (i2c_master_bus_rm_device(si5351_dev->i2c_dev.i2c_dev_handle) != ESP_OK) {
+        return ESP_FAIL;
+    }
+
+    return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -427,10 +490,8 @@ static uint8_t si5351_select_r_div_ms67(uint64_t* freq) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-esp_err_t si5351_init(si5351_t* si5351_dev, uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio, uint32_t clk_speed) {
+esp_err_t si5351_init(si5351_t* si5351_dev, uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr) {
     uint8_t reg_val = 0;
-
-    si5351_i2c_init(si5351_dev, port, sda_gpio, scl_gpio, clk_speed);
 
     si5351_dev->si5351_dev_status.SYS_INIT = 0;
     si5351_dev->si5351_dev_status.LOL_B = 0;
@@ -469,7 +530,6 @@ esp_err_t si5351_init(si5351_t* si5351_dev, uint8_t xtal_load_c, uint32_t xo_fre
 
         // Set the frequency calibration for the XO
         si5351_set_correction(si5351_dev, corr, SI5351_PLL_INPUT_XO);
-
         si5351_reset(si5351_dev);
 
         return ESP_OK;
@@ -929,12 +989,12 @@ void si5351_set_ms(si5351_t* si5351_dev, enum si5351_clock clk, struct si5351_re
     }
 }
 
-void si5351_output_enable(si5351_t* si5351_dev, enum si5351_clock clk, uint8_t enable) {
+void si5351_output_enable(si5351_t* si5351_dev, enum si5351_clock clk, bool enable) {
     uint8_t reg_val;
 
     reg_val = si5351_i2c_read(si5351_dev, SI5351_OUTPUT_ENABLE_CTRL);
 
-    if (enable == 1) {
+    if (enable) {
         reg_val &= ~(1 << (uint8_t)clk);
     } else {
         reg_val |= (1 << (uint8_t)clk);
@@ -979,7 +1039,7 @@ void si5351_set_correction(si5351_t* si5351_dev, int32_t corr, enum si5351_pll_i
     si5351_dev->si5351_ref_correction[(uint8_t)ref_osc] = corr;
 
     // Recalculate and set PLL freqs based on correction value
-    si5351_set_pll(si5351_dev, si5351_dev->si5351_plla_freq, SI5351_PLLA);
+    si5351_set_pll(si5351_dev, si5351_dev->si5351_plla_freq, SI5351_PLLA);;
     si5351_set_pll(si5351_dev, si5351_dev->si5351_pllb_freq, SI5351_PLLB);
 }
 

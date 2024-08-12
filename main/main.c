@@ -27,30 +27,50 @@
  * Boston, MA 02110-1301, USA.
  */
 
+#include <esp_err.h>
+#include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <i2cdev.h>
-#include <stdio.h>
 
 #include "si5351.h"
 
-void task(void *ignore) {
-  while (1) {
-    printf("\n\n");
-    vTaskDelay(pdMS_TO_TICKS(1000));
-  }
+static const char *TAG = "main-si5351";
+
+si5351_t si5351_dev;
+
+void task(void* param) {
+    si5351_t* si5351_dev = (si5351_t*)param;
+    si5351_i2c_init(si5351_dev, I2C_NUM_0, 18, 19, 400000);
+
+    if (si5351_init(si5351_dev, SI5351_CRYSTAL_LOAD_6PF, SI5351_XTAL_FREQ, 0) != ESP_OK) {
+        ESP_LOGI(TAG, "ERROR INIT!");
+        return;
+    }
+
+    ESP_LOGI(TAG, "set freq 40MHz");
+    si5351_set_freq(si5351_dev, 40000000, SI5351_CLK0);
+    ESP_LOGI(TAG, "enable output");
+    si5351_output_enable(si5351_dev, SI5351_CLK0, true);
+    ESP_LOGI(TAG, "end init");
+
+    while (1) {
+        // printf("\n\n");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
 
 void app_main() {
-  // Init i2cdev library
-  ESP_ERROR_CHECK(i2cdev_init());
-  
-  // Start task
-  xTaskCreate(
-    task, "i2c_scanner",
-    configMINIMAL_STACK_SIZE * 3,
-    NULL,
+    // Start task
+    xTaskCreate(
+    task,
+    "si5153_test",
+    configMINIMAL_STACK_SIZE * 20,
+    &si5351_dev,
     5,
     NULL
     );
+
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }

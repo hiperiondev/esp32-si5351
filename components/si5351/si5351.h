@@ -34,8 +34,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "i2cdev.h"
+#include "driver/i2c_master.h"
 
+#define SI5351_I2C_TIMEOUT_MS           1000
 #define SI5351_BUS_BASE_ADDR            0x60
 #define SI5351_XTAL_FREQ                25000000
 #define SI5351_PLL_FIXED                80000000000ULL
@@ -345,12 +346,24 @@ struct si5351_int_status {
 };
 
 /*
+ * @struct si5351_i2c_s
+ * @brief
+ *
+ */
+typedef struct si5351_i2c_s {
+    i2c_master_bus_config_t i2c_bus_config;
+    i2c_device_config_t i2c_dev_conf;
+    i2c_master_bus_handle_t i2c_bus_handle;
+    i2c_master_dev_handle_t i2c_dev_handle;
+} si5351_i2c_t;
+
+/*
  * @struct si5351_s
  * @brief
  *
  */
 typedef struct si5351_s {
-    i2c_dev_t i2c_dev;                              /**< i2c_dev */
+    si5351_i2c_t i2c_dev;                           /**< i2c device */
     struct si5351_status si5351_dev_status;         /**< si5351_dev_status */
     struct si5351_int_status si5351_dev_int_status; /**< si5351_dev_int_status */
     enum si5351_pll pll_assignment[8];              /**< pll_assignment */
@@ -365,6 +378,11 @@ typedef struct si5351_s {
     bool si5351_clk_first_set[8];                   /**< si5351_clk_first_set */
 } si5351_t;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int8_t si5351_i2c_init(si5351_t* si5351_dev, i2c_port_num_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio, uint32_t clk_speed);
+
+
 /**
  * @fn esp_err_t si5351_init(si5351_t* si5351_dev, uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t
  *                           scl_gpio, uint32_t clk_speed);
@@ -376,8 +394,7 @@ typedef struct si5351_s {
  * @param corr Frequency correction constant in parts-per-billion
  * @return boolean that indicates whether a device was found on the desired I2C address.
  */
-esp_err_t si5351_init(si5351_t* si5351_dev, uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio,
-                      uint32_t clk_speed);
+esp_err_t si5351_init(si5351_t* si5351_dev, uint8_t xtal_load_c, uint32_t xo_freq, int32_t corr);
 
 /**
  * @fn void si5351_reset(si5351_t* si5351_dev)
@@ -468,9 +485,9 @@ void si5351_set_ms(si5351_t* si5351_dev, enum si5351_clock clk, struct si5351_re
  *
  * @param si5351_dev Device
  * @param clk Clock output. (use the si5351_clock enum)
- * @param enable Set to 1 to enable, 0 to disable
+ * @param enable Set to true to enable, false to disable
  */
-void si5351_output_enable(si5351_t* si5351_dev, enum si5351_clock clk, uint8_t enable);
+void si5351_output_enable(si5351_t* si5351_dev, enum si5351_clock clk, bool enable);
 
 /**
  * @fn void si5351_drive_strength(si5351_t* si5351_dev, enum si5351_clock clk, enum si5351_drive drive)

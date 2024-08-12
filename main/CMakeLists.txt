@@ -4,6 +4,5 @@ idf_component_register(
     INCLUDE_DIRS
         .
     REQUIRES
-        i2cdev
         si5351
 )  

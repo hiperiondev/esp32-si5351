@@ -9,5 +9,5 @@ idf_component_register(
     INCLUDE_DIRS
         .
     REQUIRES
-        i2cdev
+        esp_driver_i2c
 )
